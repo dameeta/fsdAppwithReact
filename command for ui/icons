@@ -1,0 +1,359 @@
+npm install @material-ui/core
+npm install @mui/icons-material
+=======================
+create components folder inside src folder and add below 2 files as 
+candidate.js and Appbar.js
+candidate.js
+import React, { useEffect, useState } from 'react';
+import { makeStyles } from '@material-ui/core/styles';
+import TextField from '@material-ui/core/TextField';
+import { Container ,Paper,Button} from '@material-ui/core';
+
+const useStyles = makeStyles((theme) => ({
+  root: {
+    '& > *': {
+      margin: theme.spacing(1),
+     
+    },
+  },
+}));
+
+export default function Candidate() {
+    const paperStyle={padding:'50px 20px', width:600,margin:"20px auto"}
+    const[name,setName]=useState('')
+    const[address,setAddress]=useState('')
+    const[candidates,setCandidates]=useState([])
+     const classes = useStyles();
+
+  const handleClick=(e)=>{
+    e.preventDefault()
+    const candidate={name,address}
+    console.log(candidate)
+    fetch("http://localhost:8080/candidate/add",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(candidate)
+
+  }).then(()=>{
+    console.log("New Candidate added")
+  })
+}
+
+useEffect(()=>{
+  fetch("http://localhost:8080/candidate/getAll")
+  .then(res=>res.json())
+  .then((result)=>{
+    setCandidates(result);
+  }
+)
+},[])
+  return (
+
+    <Container>
+        <Paper elevation={3} style={paperStyle}>
+            <h1 style={{color:"blue"}}><u>Add Candidate</u></h1>
+
+    <form className={classes.root} noValidate autoComplete="off">
+    
+      <TextField id="outlined-basic" label="Candidate Name" variant="outlined" fullWidth 
+      value={name}
+      onChange={(e)=>setName(e.target.value)}
+      />
+      <TextField id="outlined-basic" label="Candidate Address" variant="outlined" fullWidth
+      value={address}
+      onChange={(e)=>setAddress(e.target.value)}
+      />
+      <Button variant="contained" color="secondary" onClick={handleClick}>
+  Submit
+</Button>
+    </form>
+   
+    </Paper>
+    <h1>Candidates</h1>
+
+    <Paper elevation={3} style={paperStyle}>
+
+      {candidates.map(candidate=>(
+        <Paper elevation={6} style={{margin:"10px",padding:"15px", textAlign:"left"}} key={candidate.id}>
+         Id:{candidate.id}<br/>
+         Name:{candidate.name}<br/>
+         Address:{candidate.address}
+
+        </Paper>
+      ))
+}
+
+
+    </Paper>
+
+
+
+    </Container>
+  );
+}
+============================================================
+Appbar.js
+import React from 'react';
+import { makeStyles } from '@material-ui/core/styles';
+import AppBar from '@material-ui/core/AppBar';
+import Toolbar from '@material-ui/core/Toolbar';
+import Typography from '@material-ui/core/Typography';
+import IconButton from '@material-ui/core/IconButton';
+import MenuIcon from '@material-ui/icons/Menu';
+
+const useStyles = makeStyles((theme) => ({
+  root: {
+    flexGrow: 1,
+  },
+  menuButton: {
+    marginRight: theme.spacing(2),
+  },
+  title: {
+    flexGrow: 1,
+  },
+}));
+
+export default function Appbar() {
+  const classes = useStyles();
+
+  return (
+    <div className={classes.root}>
+      <AppBar position="static">
+        <Toolbar>
+          <IconButton edge="start" className={classes.menuButton} color="inherit" aria-label="menu">
+            <MenuIcon />
+          </IconButton>
+          <Typography variant="h6" className={classes.title}>
+            Spring Boot React Full Stack Application 
+          </Typography>
+         
+        </Toolbar>
+      </AppBar>
+    </div>
+  );
+}
+================================================================================
+code for App.js
+import './App.css';
+import Appbar from './components/Appbar';
+import Candidate from './components/candidate';
+function App() {
+  return (
+    <div className="App">
+<Appbar/>
+<Candidate/>
+    </div>
+  );
+}
+
+export default App;
+============================================
+then run the app 
+also add @CrossOrigin annotation in Candidate controller in spring boot app
+below are spring boot codes
+package demo.sb.hello.hellosb.controller;
+
+import demo.sb.hello.hellosb.model.Candidate;
+import demo.sb.hello.hellosb.service.CandidateService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/candidate")
+@CrossOrigin
+
+public class CandidateController {
+    @Autowired
+    private CandidateService candidateService;
+
+    @PostMapping("/add")
+public String add(@RequestBody Candidate candidate)
+{
+    candidateService.saveCandidate(candidate);
+    return "New Candidate added successfully";
+}
+@GetMapping("/getAll")
+    public List<Candidate> getAllCandidates()
+{
+    return candidateService.getAllCandidates();
+}
+}
+=============================================================
+package demo.sb.hello.hellosb.model;
+
+import org.springframework.web.bind.annotation.GetMapping;
+
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+
+@Entity
+public class Candidate {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+    private String name;
+    private String address;
+
+    public Candidate() {
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+}
+==================================================================
+package demo.sb.hello.hellosb.repository;
+
+import demo.sb.hello.hellosb.model.Candidate;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface CandidateRepository extends JpaRepository<Candidate,Integer>
+{
+
+}
+==========================================================
+package demo.sb.hello.hellosb.service;
+
+import demo.sb.hello.hellosb.model.Candidate;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+
+public interface CandidateService {
+    public Candidate saveCandidate(Candidate candidate);
+    public List<Candidate> getAllCandidates();
+
+
+}
+===============================================
+package demo.sb.hello.hellosb.service;
+
+import demo.sb.hello.hellosb.model.Candidate;
+import demo.sb.hello.hellosb.repository.CandidateRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class CandidateServiceImpl implements CandidateService {
+   @Autowired
+    private CandidateRepository candidateRepository;
+
+    @Override
+    public Candidate saveCandidate(Candidate candidate) {
+        return candidateRepository.save(candidate);
+    }
+    public List<Candidate> getAllCandidates()
+    {
+        return candidateRepository.findAll();
+
+    }
+}
+========================================================
+#configuration
+spring.jpa.hibernate.ddl-auto=update
+spring.datasource.url=jdbc:mysql://localhost:3306/fsdwithreact
+spring.datasource.username=root
+spring.datasource.password=password
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+=====================================================================
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>2.7.4</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>demo.sb.hello</groupId>
+	<artifactId>hello-sb</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>hello-sb</name>
+	<description>Demo project for Spring Boot</description>
+	<properties>
+		<java.version>11</java.version>
+	</properties>
+	<dependencies>
+
+		<dependency>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-web</artifactId>
+		<version>2.7.4</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/javax.persistence/javax.persistence-api -->
+		<dependency>
+			<groupId>javax.persistence</groupId>
+			<artifactId>javax.persistence-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-web</artifactId>
+
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
+
